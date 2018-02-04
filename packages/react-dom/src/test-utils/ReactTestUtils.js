@@ -18,7 +18,7 @@ import {
 import SyntheticEvent from 'events/SyntheticEvent';
 import invariant from 'fbjs/lib/invariant';
 
-import BrowserEventConstants from '../events/BrowserEventConstants';
+import {topLevelTypes, mediaEventTypes} from '../events/BrowserEventConstants';
 
 const {findDOMNode} = ReactDOM;
 const {
@@ -29,8 +29,6 @@ const {
   ReactDOMComponentTree,
   ReactDOMEventListener,
 } = ReactDOM.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
-
-const topLevelTypes = BrowserEventConstants.topLevelTypes;
 
 function Event(suffix) {}
 
@@ -388,10 +386,9 @@ function makeSimulator(eventType) {
       // Normally extractEvent enqueues a state restore, but we'll just always
       // do that since we we're by-passing it here.
       ReactControlledComponent.enqueueStateRestore(domNode);
-
-      EventPluginHub.enqueueEvents(event);
-      EventPluginHub.processEventQueue(true);
+      EventPluginHub.runEventsInBatch(event, true);
     });
+    ReactControlledComponent.restoreStateIfNeeded();
   };
 }
 
@@ -460,7 +457,12 @@ function makeNativeSimulator(eventType) {
   };
 }
 
-Object.keys(topLevelTypes).forEach(function(eventType) {
+const eventKeys = [].concat(
+  Object.keys(topLevelTypes),
+  Object.keys(mediaEventTypes),
+);
+
+eventKeys.forEach(function(eventType) {
   // Event type is stored as 'topClick' - we transform that to 'click'
   const convenienceName =
     eventType.indexOf('top') === 0

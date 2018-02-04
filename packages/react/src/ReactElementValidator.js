@@ -15,7 +15,14 @@
 import lowPriorityWarning from 'shared/lowPriorityWarning';
 import describeComponentFrame from 'shared/describeComponentFrame';
 import getComponentName from 'shared/getComponentName';
-import {getIteratorFn, REACT_FRAGMENT_TYPE} from 'shared/ReactSymbols';
+import {
+  getIteratorFn,
+  REACT_FRAGMENT_TYPE,
+  REACT_STRICT_MODE_TYPE,
+  REACT_ASYNC_MODE_TYPE,
+  REACT_PROVIDER_TYPE,
+  REACT_CONTEXT_TYPE,
+} from 'shared/ReactSymbols';
 import checkPropTypes from 'prop-types/checkPropTypes';
 import warning from 'fbjs/lib/warning';
 
@@ -282,7 +289,13 @@ export function createElementWithValidation(type, props, children) {
     typeof type === 'string' ||
     typeof type === 'function' ||
     // Note: its typeof might be other than 'symbol' or 'number' if it's a polyfill.
-    type === REACT_FRAGMENT_TYPE;
+    type === REACT_FRAGMENT_TYPE ||
+    type === REACT_ASYNC_MODE_TYPE ||
+    type === REACT_STRICT_MODE_TYPE ||
+    (typeof type === 'object' &&
+      type !== null &&
+      (type.$$typeof === REACT_PROVIDER_TYPE ||
+        type.$$typeof === REACT_CONTEXT_TYPE));
 
   // We warn in this case but don't throw. We expect the element creation to
   // succeed and there will likely be errors in render.
@@ -308,12 +321,21 @@ export function createElementWithValidation(type, props, children) {
 
     info += getStackAddendum() || '';
 
+    let typeString;
+    if (type === null) {
+      typeString = 'null';
+    } else if (Array.isArray(type)) {
+      typeString = 'array';
+    } else {
+      typeString = typeof type;
+    }
+
     warning(
       false,
       'React.createElement: type is invalid -- expected a string (for ' +
         'built-in components) or a class/function (for composite ' +
         'components) but got: %s.%s',
-      type == null ? type : typeof type,
+      typeString,
       info,
     );
   }
@@ -348,9 +370,8 @@ export function createElementWithValidation(type, props, children) {
 
 export function createFactoryWithValidation(type) {
   const validatedFactory = createElementWithValidation.bind(null, type);
-  // Legacy hook TODO: Warn if this is accessed
   validatedFactory.type = type;
-
+  // Legacy hook: remove it
   if (__DEV__) {
     Object.defineProperty(validatedFactory, 'type', {
       enumerable: false,

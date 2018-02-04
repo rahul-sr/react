@@ -5,13 +5,17 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-import {batchedUpdates} from 'events/ReactGenericBatching';
+import {batchedUpdates, interactiveUpdates} from 'events/ReactGenericBatching';
+import {runExtractedEventsInBatch} from 'events/EventPluginHub';
 import {isFiberMounted} from 'react-reconciler/reflection';
 import {HostRoot} from 'shared/ReactTypeOfWork';
 
 import {addEventBubbleListener, addEventCaptureListener} from './EventListener';
 import getEventTarget from './getEventTarget';
 import {getClosestInstanceFromNode} from '../client/ReactDOMComponentTree';
+import SimpleEventPlugin from './SimpleEventPlugin';
+
+const {isInteractiveTopLevelEventType} = SimpleEventPlugin;
 
 const CALLBACK_BOOKKEEPING_POOL_SIZE = 10;
 const callbackBookkeepingPool = [];
@@ -62,7 +66,7 @@ function releaseTopLevelCallbackBookKeeping(instance) {
   }
 }
 
-function handleTopLevelImpl(bookKeeping) {
+function handleTopLevel(bookKeeping) {
   let targetInst = bookKeeping.targetInst;
 
   // Loop through the hierarchy, in case there's any nested components.
@@ -85,7 +89,7 @@ function handleTopLevelImpl(bookKeeping) {
 
   for (let i = 0; i < bookKeeping.ancestors.length; i++) {
     targetInst = bookKeeping.ancestors[i];
-    _handleTopLevel(
+    runExtractedEventsInBatch(
       bookKeeping.topLevelType,
       targetInst,
       bookKeeping.nativeEvent,
@@ -96,11 +100,6 @@ function handleTopLevelImpl(bookKeeping) {
 
 // TODO: can we stop exporting these?
 export let _enabled = true;
-export let _handleTopLevel: null;
-
-export function setHandleTopLevel(handleTopLevel) {
-  _handleTopLevel = handleTopLevel;
-}
 
 export function setEnabled(enabled) {
   _enabled = !!enabled;
@@ -124,10 +123,15 @@ export function trapBubbledEvent(topLevelType, handlerBaseName, element) {
   if (!element) {
     return null;
   }
+  const dispatch = isInteractiveTopLevelEventType(topLevelType)
+    ? dispatchInteractiveEvent
+    : dispatchEvent;
+
   addEventBubbleListener(
     element,
     handlerBaseName,
-    dispatchEvent.bind(null, topLevelType),
+    // Check if interactive and wrap in interactiveUpdates
+    dispatch.bind(null, topLevelType),
   );
 }
 
@@ -145,11 +149,20 @@ export function trapCapturedEvent(topLevelType, handlerBaseName, element) {
   if (!element) {
     return null;
   }
+  const dispatch = isInteractiveTopLevelEventType(topLevelType)
+    ? dispatchInteractiveEvent
+    : dispatchEvent;
+
   addEventCaptureListener(
     element,
     handlerBaseName,
-    dispatchEvent.bind(null, topLevelType),
+    // Check if interactive and wrap in interactiveUpdates
+    dispatch.bind(null, topLevelType),
   );
+}
+
+function dispatchInteractiveEvent(topLevelType, nativeEvent) {
+  interactiveUpdates(dispatchEvent, topLevelType, nativeEvent);
 }
 
 export function dispatchEvent(topLevelType, nativeEvent) {
@@ -180,7 +193,7 @@ export function dispatchEvent(topLevelType, nativeEvent) {
   try {
     // Event queue being processed in the same cycle allows
     // `preventDefault`.
-    batchedUpdates(handleTopLevelImpl, bookKeeping);
+    batchedUpdates(handleTopLevel, bookKeeping);
   } finally {
     releaseTopLevelCallbackBookKeeping(bookKeeping);
   }

@@ -17,7 +17,6 @@ let TestComponent;
 describe('ReactCompositeComponent-state', () => {
   beforeEach(() => {
     React = require('react');
-
     ReactDOM = require('react-dom');
 
     TestComponent = class extends React.Component {
@@ -47,7 +46,7 @@ describe('ReactCompositeComponent-state', () => {
         return <div>{this.state.color}</div>;
       }
 
-      componentWillMount() {
+      UNSAFE_componentWillMount() {
         this.peekAtState('componentWillMount-start');
         this.setState(function(state) {
           this.peekAtState('before-setState-sunrise', state);
@@ -79,7 +78,7 @@ describe('ReactCompositeComponent-state', () => {
         this.peekAtState('componentDidMount-end');
       }
 
-      componentWillReceiveProps(newProps) {
+      UNSAFE_componentWillReceiveProps(newProps) {
         this.peekAtState('componentWillReceiveProps-start');
         if (newProps.nextColor) {
           this.setState(function(state) {
@@ -106,7 +105,7 @@ describe('ReactCompositeComponent-state', () => {
         return true;
       }
 
-      componentWillUpdate(nextProps, nextState) {
+      UNSAFE_componentWillUpdate(nextProps, nextState) {
         this.peekAtState('componentWillUpdate-currentState');
         this.peekAtState('componentWillUpdate-nextState', nextState);
       }
@@ -324,7 +323,7 @@ describe('ReactCompositeComponent-state', () => {
     }
     let updated = false;
     class Child extends React.Component {
-      componentWillReceiveProps() {
+      UNSAFE_componentWillReceiveProps() {
         if (updated) {
           return;
         }
@@ -381,12 +380,10 @@ describe('ReactCompositeComponent-state', () => {
   });
 
   it('should treat assigning to this.state inside cWRP as a replaceState, with a warning', () => {
-    spyOnDev(console, 'error');
-
     let ops = [];
     class Test extends React.Component {
       state = {step: 1, extra: true};
-      componentWillReceiveProps() {
+      UNSAFE_componentWillReceiveProps() {
         this.setState({step: 2}, () => {
           // Tests that earlier setState callbacks are not dropped
           ops.push(
@@ -409,36 +406,27 @@ describe('ReactCompositeComponent-state', () => {
     const container = document.createElement('div');
     ReactDOM.render(<Test />, container);
     // Update
-    ReactDOM.render(<Test />, container);
+    expect(() => ReactDOM.render(<Test />, container)).toWarnDev(
+      'Warning: Test.componentWillReceiveProps(): Assigning directly to ' +
+        "this.state is deprecated (except inside a component's constructor). " +
+        'Use setState instead.',
+    );
 
     expect(ops).toEqual([
       'render -- step: 1, extra: true',
       'render -- step: 3, extra: false',
       'callback -- step: 3, extra: false',
     ]);
-    if (__DEV__) {
-      expect(console.error.calls.count()).toEqual(1);
-      expect(console.error.calls.argsFor(0)[0]).toEqual(
-        'Warning: Test.componentWillReceiveProps(): Assigning directly to ' +
-          "this.state is deprecated (except inside a component's constructor). " +
-          'Use setState instead.',
-      );
-    }
 
-    // Check deduplication
+    // Check deduplication; (no additional warnings are expected)
     ReactDOM.render(<Test />, container);
-    if (__DEV__) {
-      expect(console.error.calls.count()).toEqual(1);
-    }
   });
 
   it('should treat assigning to this.state inside cWM as a replaceState, with a warning', () => {
-    spyOnDev(console, 'error');
-
     let ops = [];
     class Test extends React.Component {
       state = {step: 1, extra: true};
-      componentWillMount() {
+      UNSAFE_componentWillMount() {
         this.setState({step: 2}, () => {
           // Tests that earlier setState callbacks are not dropped
           ops.push(
@@ -459,19 +447,61 @@ describe('ReactCompositeComponent-state', () => {
 
     // Mount
     const container = document.createElement('div');
-    ReactDOM.render(<Test />, container);
+    expect(() => ReactDOM.render(<Test />, container)).toWarnDev(
+      'Warning: Test.componentWillMount(): Assigning directly to ' +
+        "this.state is deprecated (except inside a component's constructor). " +
+        'Use setState instead.',
+    );
 
     expect(ops).toEqual([
       'render -- step: 3, extra: false',
       'callback -- step: 3, extra: false',
     ]);
-    if (__DEV__) {
-      expect(console.error.calls.count()).toEqual(1);
-      expect(console.error.calls.argsFor(0)[0]).toEqual(
-        'Warning: Test.componentWillMount(): Assigning directly to ' +
-          "this.state is deprecated (except inside a component's constructor). " +
-          'Use setState instead.',
-      );
+  });
+
+  it('should support stateful module pattern components', () => {
+    function Child() {
+      return {
+        state: {
+          count: 123,
+        },
+        render() {
+          return <div>{`count:${this.state.count}`}</div>;
+        },
+      };
     }
+
+    const el = document.createElement('div');
+    ReactDOM.render(<Child />, el);
+
+    expect(el.textContent).toBe('count:123');
+  });
+
+  it('should support getDerivedStateFromProps for module pattern components', () => {
+    function Child() {
+      return {
+        state: {
+          count: 1,
+        },
+        render() {
+          return <div>{`count:${this.state.count}`}</div>;
+        },
+      };
+    }
+    Child.getDerivedStateFromProps = (props, prevState) => {
+      return {
+        count: prevState.count + props.incrementBy,
+      };
+    };
+
+    const el = document.createElement('div');
+    ReactDOM.render(<Child incrementBy={0} />, el);
+    expect(el.textContent).toBe('count:1');
+
+    ReactDOM.render(<Child incrementBy={2} />, el);
+    expect(el.textContent).toBe('count:3');
+
+    ReactDOM.render(<Child incrementBy={1} />, el);
+    expect(el.textContent).toBe('count:4');
   });
 });

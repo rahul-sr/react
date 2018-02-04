@@ -22,6 +22,7 @@ import * as inputValueTracking from './inputValueTracking';
 import setInnerHTML from './setInnerHTML';
 import setTextContent from './setTextContent';
 import {listenTo, trapBubbledEvent} from '../events/ReactBrowserEventEmitter';
+import {mediaEventTypes} from '../events/BrowserEventConstants';
 import * as CSSPropertyOperations from '../shared/CSSPropertyOperations';
 import {Namespaces, getIntrinsicNamespace} from '../shared/DOMNamespaces';
 import {
@@ -32,6 +33,7 @@ import {
 import assertValidProps from '../shared/assertValidProps';
 import {DOCUMENT_NODE, DOCUMENT_FRAGMENT_NODE} from '../shared/HTMLNodeType';
 import isCustomComponent from '../shared/isCustomComponent';
+import possibleStandardNames from '../shared/possibleStandardNames';
 import {validateProperties as validateARIAProperties} from '../shared/ReactDOMInvalidARIAHook';
 import {validateProperties as validateInputProperties} from '../shared/ReactDOMNullInputValuePropHook';
 import {validateProperties as validateUnknownProperties} from '../shared/ReactDOMUnknownPropertyHook';
@@ -221,34 +223,6 @@ function getOwnerDocumentFromRootContainer(
     ? (rootContainerElement: any)
     : rootContainerElement.ownerDocument;
 }
-
-// There are so many media events, it makes sense to just
-// maintain a list rather than create a `trapBubbledEvent` for each
-const mediaEvents = {
-  topAbort: 'abort',
-  topCanPlay: 'canplay',
-  topCanPlayThrough: 'canplaythrough',
-  topDurationChange: 'durationchange',
-  topEmptied: 'emptied',
-  topEncrypted: 'encrypted',
-  topEnded: 'ended',
-  topError: 'error',
-  topLoadedData: 'loadeddata',
-  topLoadedMetadata: 'loadedmetadata',
-  topLoadStart: 'loadstart',
-  topPause: 'pause',
-  topPlay: 'play',
-  topPlaying: 'playing',
-  topProgress: 'progress',
-  topRateChange: 'ratechange',
-  topSeeked: 'seeked',
-  topSeeking: 'seeking',
-  topStalled: 'stalled',
-  topSuspend: 'suspend',
-  topTimeUpdate: 'timeupdate',
-  topVolumeChange: 'volumechange',
-  topWaiting: 'waiting',
-};
 
 function trapClickOnNonInteractiveElement(node: HTMLElement) {
   // Mobile Safari does not fire properly bubble click events on
@@ -471,9 +445,9 @@ export function setInitialProperties(
     case 'video':
     case 'audio':
       // Create listener for each media event
-      for (const event in mediaEvents) {
-        if (mediaEvents.hasOwnProperty(event)) {
-          trapBubbledEvent(event, mediaEvents[event], domElement);
+      for (const event in mediaEventTypes) {
+        if (mediaEventTypes.hasOwnProperty(event)) {
+          trapBubbledEvent(event, mediaEventTypes[event], domElement);
         }
       }
       props = rawProps;
@@ -484,6 +458,7 @@ export function setInitialProperties(
       break;
     case 'img':
     case 'image':
+    case 'link':
       trapBubbledEvent('topError', 'error', domElement);
       trapBubbledEvent('topLoad', 'load', domElement);
       props = rawProps;
@@ -813,6 +788,17 @@ export function updateProperties(
   }
 }
 
+function getPossibleStandardName(propName: string): string | null {
+  if (__DEV__) {
+    const lowerCasedName = propName.toLowerCase();
+    if (!possibleStandardNames.hasOwnProperty(lowerCasedName)) {
+      return null;
+    }
+    return possibleStandardNames[lowerCasedName] || null;
+  }
+  return null;
+}
+
 export function diffHydratedProperties(
   domElement: Element,
   tag: string,
@@ -847,9 +833,9 @@ export function diffHydratedProperties(
     case 'video':
     case 'audio':
       // Create listener for each media event
-      for (const event in mediaEvents) {
-        if (mediaEvents.hasOwnProperty(event)) {
-          trapBubbledEvent(event, mediaEvents[event], domElement);
+      for (const event in mediaEventTypes) {
+        if (mediaEventTypes.hasOwnProperty(event)) {
+          trapBubbledEvent(event, mediaEventTypes[event], domElement);
         }
       }
       break;
@@ -858,6 +844,7 @@ export function diffHydratedProperties(
       break;
     case 'img':
     case 'image':
+    case 'link':
       trapBubbledEvent('topError', 'error', domElement);
       trapBubbledEvent('topLoad', 'load', domElement);
       break;
@@ -1017,6 +1004,7 @@ export function diffHydratedProperties(
           isCustomComponentTag,
         )
       ) {
+        let isMismatchDueToBadCasing = false;
         if (propertyInfo !== null) {
           // $FlowFixMe - Should be inferred as not undefined.
           extraAttributeNames.delete(propertyInfo.attributeName);
@@ -1035,6 +1023,17 @@ export function diffHydratedProperties(
             // $FlowFixMe - Should be inferred as not undefined.
             extraAttributeNames.delete(propKey.toLowerCase());
           } else {
+            const standardName = getPossibleStandardName(propKey);
+            if (standardName !== null && standardName !== propKey) {
+              // If an SVG prop is supplied with bad casing, it will
+              // be successfully parsed from HTML, but will produce a mismatch
+              // (and would be incorrectly rendered on the client).
+              // However, we already warn about bad casing elsewhere.
+              // So we'll skip the misleading extra mismatch warning in this case.
+              isMismatchDueToBadCasing = true;
+              // $FlowFixMe - Should be inferred as not undefined.
+              extraAttributeNames.delete(standardName);
+            }
             // $FlowFixMe - Should be inferred as not undefined.
             extraAttributeNames.delete(propKey);
           }
@@ -1045,7 +1044,7 @@ export function diffHydratedProperties(
           );
         }
 
-        if (nextProp !== serverValue) {
+        if (nextProp !== serverValue && !isMismatchDueToBadCasing) {
           warnForPropDifference(propKey, serverValue, nextProp);
         }
       }

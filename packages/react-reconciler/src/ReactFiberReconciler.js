@@ -65,6 +65,7 @@ export type HostConfig<T, P, I, TI, HI, PI, C, CC, CX, PL> = {
     type: T,
     props: P,
     rootContainerInstance: C,
+    hostContext: CX,
   ): boolean,
 
   prepareUpdate(
@@ -92,12 +93,10 @@ export type HostConfig<T, P, I, TI, HI, PI, C, CC, CX, PL> = {
   ): number,
   cancelDeferredCallback(callbackID: number): void,
 
-  prepareForCommit(): void,
-  resetAfterCommit(): void,
+  prepareForCommit(containerInfo: C): void,
+  resetAfterCommit(containerInfo: C): void,
 
   now(): number,
-
-  useSyncScheduling?: boolean,
 
   +hydration?: HydrationHostConfig<T, P, I, TI, HI, C, CX, PL>,
 
@@ -257,7 +256,9 @@ export type Reconciler<C, I, TI> = {
   batchedUpdates<A>(fn: () => A): A,
   unbatchedUpdates<A>(fn: () => A): A,
   flushSync<A>(fn: () => A): A,
+  flushControlled(fn: () => mixed): void,
   deferredUpdates<A>(fn: () => A): A,
+  interactiveUpdates<A>(fn: () => A): A,
   injectIntoDevTools(devToolsConfig: DevToolsConfig<I, TI>): boolean,
   computeUniqueAsyncExpiration(): ExpirationTime,
 
@@ -301,7 +302,11 @@ export default function<T, P, I, TI, HI, PI, C, CC, CX, PL>(
     batchedUpdates,
     unbatchedUpdates,
     flushSync,
+    flushControlled,
     deferredUpdates,
+    syncUpdates,
+    interactiveUpdates,
+    flushInteractiveUpdates,
   } = ReactFiberScheduler(config);
 
   function scheduleRootUpdate(
@@ -431,6 +436,14 @@ export default function<T, P, I, TI, HI, PI, C, CC, CX, PL>(
     unbatchedUpdates,
 
     deferredUpdates,
+
+    syncUpdates,
+
+    interactiveUpdates,
+
+    flushInteractiveUpdates,
+
+    flushControlled,
 
     flushSync,
 

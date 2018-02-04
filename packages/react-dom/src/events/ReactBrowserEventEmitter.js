@@ -6,7 +6,6 @@
  */
 
 import {registrationNameDependencies} from 'events/EventPluginRegistry';
-
 import {
   setEnabled,
   isEnabled,
@@ -14,11 +13,7 @@ import {
   trapCapturedEvent,
 } from './ReactDOMEventListener';
 import isEventSupported from './isEventSupported';
-import BrowserEventConstants from './BrowserEventConstants';
-
-export * from 'events/ReactEventEmitterMixin';
-
-const {topLevelTypes} = BrowserEventConstants;
+import {topLevelTypes} from './BrowserEventConstants';
 
 /**
  * Summary of `ReactBrowserEventEmitter` event handling:

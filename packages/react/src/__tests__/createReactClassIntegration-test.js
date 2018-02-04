@@ -17,6 +17,7 @@ let createReactClass;
 
 describe('create-react-class-integration', () => {
   beforeEach(() => {
+    jest.resetModules();
     PropTypes = require('prop-types');
     React = require('react');
     ReactDOM = require('react-dom');
@@ -52,121 +53,119 @@ describe('create-react-class-integration', () => {
   });
 
   it('should warn on invalid prop types', () => {
-    spyOnDev(console, 'error');
-    createReactClass({
-      displayName: 'Component',
-      propTypes: {
-        prop: null,
-      },
-      render: function() {
-        return <span>{this.props.prop}</span>;
-      },
-    });
-    if (__DEV__) {
-      expect(console.error.calls.count()).toBe(1);
-      expect(console.error.calls.argsFor(0)[0]).toBe(
-        'Warning: Component: prop type `prop` is invalid; ' +
-          'it must be a function, usually from React.PropTypes.',
-      );
-    }
+    expect(() =>
+      createReactClass({
+        displayName: 'Component',
+        propTypes: {
+          prop: null,
+        },
+        render: function() {
+          return <span>{this.props.prop}</span>;
+        },
+      }),
+    ).toWarnDev(
+      'Warning: Component: prop type `prop` is invalid; ' +
+        'it must be a function, usually from React.PropTypes.',
+    );
   });
 
   it('should warn on invalid context types', () => {
-    spyOnDev(console, 'error');
-    createReactClass({
-      displayName: 'Component',
-      contextTypes: {
-        prop: null,
-      },
-      render: function() {
-        return <span>{this.props.prop}</span>;
-      },
-    });
-    if (__DEV__) {
-      expect(console.error.calls.count()).toBe(1);
-      expect(console.error.calls.argsFor(0)[0]).toBe(
-        'Warning: Component: context type `prop` is invalid; ' +
-          'it must be a function, usually from React.PropTypes.',
-      );
-    }
+    expect(() =>
+      createReactClass({
+        displayName: 'Component',
+        contextTypes: {
+          prop: null,
+        },
+        render: function() {
+          return <span>{this.props.prop}</span>;
+        },
+      }),
+    ).toWarnDev(
+      'Warning: Component: context type `prop` is invalid; ' +
+        'it must be a function, usually from React.PropTypes.',
+    );
   });
 
   it('should throw on invalid child context types', () => {
-    spyOnDev(console, 'error');
-    createReactClass({
-      displayName: 'Component',
-      childContextTypes: {
-        prop: null,
-      },
-      render: function() {
-        return <span>{this.props.prop}</span>;
-      },
-    });
-    if (__DEV__) {
-      expect(console.error.calls.count()).toBe(1);
-      expect(console.error.calls.argsFor(0)[0]).toBe(
-        'Warning: Component: child context type `prop` is invalid; ' +
-          'it must be a function, usually from React.PropTypes.',
-      );
-    }
+    expect(() =>
+      createReactClass({
+        displayName: 'Component',
+        childContextTypes: {
+          prop: null,
+        },
+        render: function() {
+          return <span>{this.props.prop}</span>;
+        },
+      }),
+    ).toWarnDev(
+      'Warning: Component: child context type `prop` is invalid; ' +
+        'it must be a function, usually from React.PropTypes.',
+    );
   });
 
   it('should warn when misspelling shouldComponentUpdate', () => {
-    spyOnDev(console, 'error');
+    expect(() =>
+      createReactClass({
+        componentShouldUpdate: function() {
+          return false;
+        },
+        render: function() {
+          return <div />;
+        },
+      }),
+    ).toWarnDev(
+      'Warning: A component has a method called componentShouldUpdate(). Did you ' +
+        'mean shouldComponentUpdate()? The name is phrased as a question ' +
+        'because the function is expected to return a value.',
+    );
 
-    createReactClass({
-      componentShouldUpdate: function() {
-        return false;
-      },
-      render: function() {
-        return <div />;
-      },
-    });
-    if (__DEV__) {
-      expect(console.error.calls.count()).toBe(1);
-      expect(console.error.calls.argsFor(0)[0]).toBe(
-        'Warning: A component has a method called componentShouldUpdate(). Did you ' +
-          'mean shouldComponentUpdate()? The name is phrased as a question ' +
-          'because the function is expected to return a value.',
-      );
-    }
-
-    createReactClass({
-      displayName: 'NamedComponent',
-      componentShouldUpdate: function() {
-        return false;
-      },
-      render: function() {
-        return <div />;
-      },
-    });
-    if (__DEV__) {
-      expect(console.error.calls.count()).toBe(2);
-      expect(console.error.calls.argsFor(1)[0]).toBe(
-        'Warning: NamedComponent has a method called componentShouldUpdate(). Did you ' +
-          'mean shouldComponentUpdate()? The name is phrased as a question ' +
-          'because the function is expected to return a value.',
-      );
-    }
+    expect(() =>
+      createReactClass({
+        displayName: 'NamedComponent',
+        componentShouldUpdate: function() {
+          return false;
+        },
+        render: function() {
+          return <div />;
+        },
+      }),
+    ).toWarnDev(
+      'Warning: NamedComponent has a method called componentShouldUpdate(). Did you ' +
+        'mean shouldComponentUpdate()? The name is phrased as a question ' +
+        'because the function is expected to return a value.',
+    );
   });
 
   it('should warn when misspelling componentWillReceiveProps', () => {
-    spyOnDev(console, 'error');
-    createReactClass({
-      componentWillRecieveProps: function() {
-        return false;
-      },
-      render: function() {
-        return <div />;
-      },
-    });
-    if (__DEV__) {
-      expect(console.error.calls.count()).toBe(1);
-      expect(console.error.calls.argsFor(0)[0]).toBe(
-        'Warning: A component has a method called componentWillRecieveProps(). Did you ' +
-          'mean componentWillReceiveProps()?',
-      );
-    }
+    expect(() =>
+      createReactClass({
+        componentWillRecieveProps: function() {
+          return false;
+        },
+        render: function() {
+          return <div />;
+        },
+      }),
+    ).toWarnDev(
+      'Warning: A component has a method called componentWillRecieveProps(). Did you ' +
+        'mean componentWillReceiveProps()?',
+    );
+  });
+
+  it('should warn when misspelling UNSAFE_componentWillReceiveProps', () => {
+    expect(() =>
+      createReactClass({
+        UNSAFE_componentWillRecieveProps: function() {
+          return false;
+        },
+        render: function() {
+          return <div />;
+        },
+      }),
+    ).toWarnDev(
+      'Warning: A component has a method called UNSAFE_componentWillRecieveProps(). ' +
+        'Did you mean UNSAFE_componentWillReceiveProps()?',
+    );
   });
 
   it('should throw if a reserved property is in statics', () => {
@@ -193,43 +192,33 @@ describe('create-react-class-integration', () => {
   });
 
   // TODO: Consider actually moving these to statics or drop this unit test.
-
   xit('should warn when using deprecated non-static spec keys', () => {
-    spyOnDev(console, 'error');
-    createReactClass({
-      mixins: [{}],
-      propTypes: {
-        foo: PropTypes.string,
-      },
-      contextTypes: {
-        foo: PropTypes.string,
-      },
-      childContextTypes: {
-        foo: PropTypes.string,
-      },
-      render: function() {
-        return <div />;
-      },
-    });
-    if (__DEV__) {
-      expect(console.error.calls.count()).toBe(4);
-      expect(console.error.calls.argsFor(0)[0]).toBe(
-        'createClass(...): `mixins` is now a static property and should ' +
-          'be defined inside "statics".',
-      );
-      expect(console.error.calls.argsFor(1)[0]).toBe(
-        'createClass(...): `propTypes` is now a static property and should ' +
-          'be defined inside "statics".',
-      );
-      expect(console.error.calls.argsFor(2)[0]).toBe(
-        'createClass(...): `contextTypes` is now a static property and ' +
-          'should be defined inside "statics".',
-      );
-      expect(console.error.calls.argsFor(3)[0]).toBe(
-        'createClass(...): `childContextTypes` is now a static property and ' +
-          'should be defined inside "statics".',
-      );
-    }
+    expect(() =>
+      createReactClass({
+        mixins: [{}],
+        propTypes: {
+          foo: PropTypes.string,
+        },
+        contextTypes: {
+          foo: PropTypes.string,
+        },
+        childContextTypes: {
+          foo: PropTypes.string,
+        },
+        render: function() {
+          return <div />;
+        },
+      }),
+    ).toWarnDev([
+      'createClass(...): `mixins` is now a static property and should ' +
+        'be defined inside "statics".',
+      'createClass(...): `propTypes` is now a static property and should ' +
+        'be defined inside "statics".',
+      'createClass(...): `contextTypes` is now a static property and ' +
+        'should be defined inside "statics".',
+      'createClass(...): `childContextTypes` is now a static property and ' +
+        'should be defined inside "statics".',
+    ]);
   });
 
   it('should support statics', () => {
@@ -273,6 +262,23 @@ describe('create-react-class-integration', () => {
         return <span />;
       },
     });
+    let instance = <Component />;
+    instance = ReactTestUtils.renderIntoDocument(instance);
+    expect(instance.state.occupation).toEqual('clown');
+  });
+
+  it('should work with getDerivedStateFromProps() return values', () => {
+    const Component = createReactClass({
+      getInitialState() {
+        return {};
+      },
+      render: function() {
+        return <span />;
+      },
+    });
+    Component.getDerivedStateFromProps = () => {
+      return {occupation: 'clown'};
+    };
     let instance = <Component />;
     instance = ReactTestUtils.renderIntoDocument(instance);
     expect(instance.state.occupation).toEqual('clown');
@@ -342,21 +348,16 @@ describe('create-react-class-integration', () => {
   });
 
   it('should throw when using legacy factories', () => {
-    spyOnDev(console, 'error');
     const Component = createReactClass({
       render() {
         return <div />;
       },
     });
 
-    expect(() => Component()).toThrow();
-    if (__DEV__) {
-      expect(console.error.calls.count()).toBe(1);
-      expect(console.error.calls.argsFor(0)[0]).toBe(
-        'Warning: Something is calling a React component directly. Use a ' +
-          'factory or JSX instead. See: https://fb.me/react-legacyfactory',
-      );
-    }
+    expect(() => expect(() => Component()).toThrow()).toWarnDev(
+      'Warning: Something is calling a React component directly. Use a ' +
+        'factory or JSX instead. See: https://fb.me/react-legacyfactory',
+    );
   });
 
   it('replaceState and callback works', () => {
@@ -378,90 +379,149 @@ describe('create-react-class-integration', () => {
     expect(ops).toEqual(['Render: 0', 'Render: 1', 'Callback: 1']);
   });
 
-  it('isMounted works', () => {
-    spyOnDev(console, 'error');
-
-    const ops = [];
-    let instance;
+  it('getDerivedStateFromProps updates state when props change', () => {
     const Component = createReactClass({
-      displayName: 'MyComponent',
-      mixins: [
-        {
-          componentWillMount() {
-            this.log('mixin.componentWillMount');
-          },
-          componentDidMount() {
-            this.log('mixin.componentDidMount');
-          },
-          componentWillUpdate() {
-            this.log('mixin.componentWillUpdate');
-          },
-          componentDidUpdate() {
-            this.log('mixin.componentDidUpdate');
-          },
-          componentWillUnmount() {
-            this.log('mixin.componentWillUnmount');
-          },
-        },
-      ],
-      log(name) {
-        ops.push(`${name}: ${this.isMounted()}`);
-      },
       getInitialState() {
-        this.log('getInitialState');
-        return {};
-      },
-      componentWillMount() {
-        this.log('componentWillMount');
-      },
-      componentDidMount() {
-        this.log('componentDidMount');
-      },
-      componentWillUpdate() {
-        this.log('componentWillUpdate');
-      },
-      componentDidUpdate() {
-        this.log('componentDidUpdate');
-      },
-      componentWillUnmount() {
-        this.log('componentWillUnmount');
+        return {
+          count: 1,
+        };
       },
       render() {
-        instance = this;
-        this.log('render');
-        return <div />;
+        return <div>count:{this.state.count}</div>;
       },
+    });
+    Component.getDerivedStateFromProps = (nextProps, prevState) => ({
+      count: prevState.count + nextProps.incrementBy,
     });
 
     const container = document.createElement('div');
-    ReactDOM.render(<Component />, container);
-    ReactDOM.render(<Component />, container);
-    ReactDOM.unmountComponentAtNode(container);
-    instance.log('after unmount');
-    expect(ops).toEqual([
-      'getInitialState: false',
-      'mixin.componentWillMount: false',
-      'componentWillMount: false',
-      'render: false',
-      'mixin.componentDidMount: true',
-      'componentDidMount: true',
-      'mixin.componentWillUpdate: true',
-      'componentWillUpdate: true',
-      'render: true',
-      'mixin.componentDidUpdate: true',
-      'componentDidUpdate: true',
-      'mixin.componentWillUnmount: true',
-      'componentWillUnmount: true',
-      'after unmount: false',
-    ]);
+    const instance = ReactDOM.render(
+      <div>
+        <Component incrementBy={0} />
+      </div>,
+      container,
+    );
+    expect(instance.textContent).toEqual('count:1');
+    ReactDOM.render(
+      <div>
+        <Component incrementBy={2} />
+      </div>,
+      container,
+    );
+    expect(instance.textContent).toEqual('count:3');
+  });
 
-    if (__DEV__) {
-      expect(console.error.calls.count()).toBe(1);
-      expect(console.error.calls.argsFor(0)[0]).toEqual(
-        'Warning: MyComponent: isMounted is deprecated. Instead, make sure to ' +
-          'clean up subscriptions and pending requests in componentWillUnmount ' +
-          'to prevent memory leaks.',
-      );
-    }
+  it('should support the new static getDerivedStateFromProps method', () => {
+    let instance;
+    const Component = createReactClass({
+      statics: {
+        getDerivedStateFromProps: function() {
+          return {foo: 'bar'};
+        },
+      },
+
+      getInitialState() {
+        return {};
+      },
+
+      render: function() {
+        instance = this;
+        return null;
+      },
+    });
+    ReactDOM.render(<Component />, document.createElement('div'));
+    expect(instance.state.foo).toBe('bar');
+  });
+
+  it('should warn if state is not properly initialized before getDerivedStateFromProps', () => {
+    const Component = createReactClass({
+      statics: {
+        getDerivedStateFromProps: function() {
+          return null;
+        },
+      },
+      render: function() {
+        return null;
+      },
+    });
+    expect(() =>
+      ReactDOM.render(<Component />, document.createElement('div')),
+    ).toWarnDev('Did not properly initialize state during construction.');
+  });
+
+  it('should not invoke deprecated lifecycles (cWM/cWRP/cWU) if new static gDSFP is present', () => {
+    const Component = createReactClass({
+      statics: {
+        getDerivedStateFromProps: function() {
+          return null;
+        },
+      },
+      componentWillMount: function() {
+        throw Error('unexpected');
+      },
+      componentWillReceiveProps: function() {
+        throw Error('unexpected');
+      },
+      componentWillUpdate: function() {
+        throw Error('unexpected');
+      },
+      getInitialState: function() {
+        return {};
+      },
+      render: function() {
+        return null;
+      },
+    });
+
+    expect(() => {
+      ReactDOM.render(<Component />, document.createElement('div'));
+    }).toWarnDev('Defines both componentWillReceiveProps');
+    ReactDOM.render(<Component foo={1} />, document.createElement('div'));
+  });
+
+  it('should invoke both deprecated and new lifecycles if both are present', () => {
+    const log = [];
+
+    const Component = createReactClass({
+      mixins: [
+        {
+          componentWillMount: function() {
+            log.push('componentWillMount');
+          },
+          componentWillReceiveProps: function() {
+            log.push('componentWillReceiveProps');
+          },
+          componentWillUpdate: function() {
+            log.push('componentWillUpdate');
+          },
+        },
+      ],
+      UNSAFE_componentWillMount: function() {
+        log.push('UNSAFE_componentWillMount');
+      },
+      UNSAFE_componentWillReceiveProps: function() {
+        log.push('UNSAFE_componentWillReceiveProps');
+      },
+      UNSAFE_componentWillUpdate: function() {
+        log.push('UNSAFE_componentWillUpdate');
+      },
+      render: function() {
+        return null;
+      },
+    });
+
+    const div = document.createElement('div');
+    ReactDOM.render(<Component foo="bar" />, div);
+    expect(log).toEqual(['componentWillMount', 'UNSAFE_componentWillMount']);
+
+    log.length = 0;
+
+    ReactDOM.render(<Component foo="baz" />, div);
+    expect(log).toEqual([
+      'componentWillReceiveProps',
+      'UNSAFE_componentWillReceiveProps',
+      'componentWillUpdate',
+      'UNSAFE_componentWillUpdate',
+    ]);
   });
 });

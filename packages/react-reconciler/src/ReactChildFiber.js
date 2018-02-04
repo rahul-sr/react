@@ -138,9 +138,12 @@ function coerceRef(current: Fiber | null, element: ReactElement) {
       );
       invariant(
         element._owner,
-        'Element ref was specified as a string (%s) but no owner was ' +
-          'set. You may have multiple copies of React loaded. ' +
-          '(details: https://fb.me/react-refs-must-have-owner).',
+        'Element ref was specified as a string (%s) but no owner was set. This could happen for one of' +
+          ' the following reasons:\n' +
+          '1. You may be adding a ref to a functional component\n' +
+          "2. You may be adding a ref to a component that was not created inside a component's render method\n" +
+          '3. You have multiple copies of React loaded\n' +
+          'See https://fb.me/react-refs-must-have-owner for more information.',
         mixedRef,
       );
     }
@@ -315,7 +318,7 @@ function ChildReconciler(shouldTrackSideEffects) {
       // Insert
       const created = createFiberFromText(
         textContent,
-        returnFiber.internalContextTag,
+        returnFiber.mode,
         expirationTime,
       );
       created.return = returnFiber;
@@ -348,7 +351,7 @@ function ChildReconciler(shouldTrackSideEffects) {
       // Insert
       const created = createFiberFromElement(
         element,
-        returnFiber.internalContextTag,
+        returnFiber.mode,
         expirationTime,
       );
       created.ref = coerceRef(current, element);
@@ -372,7 +375,7 @@ function ChildReconciler(shouldTrackSideEffects) {
       // Insert
       const created = createFiberFromPortal(
         portal,
-        returnFiber.internalContextTag,
+        returnFiber.mode,
         expirationTime,
       );
       created.return = returnFiber;
@@ -396,7 +399,7 @@ function ChildReconciler(shouldTrackSideEffects) {
       // Insert
       const created = createFiberFromFragment(
         fragment,
-        returnFiber.internalContextTag,
+        returnFiber.mode,
         expirationTime,
         key,
       );
@@ -421,7 +424,7 @@ function ChildReconciler(shouldTrackSideEffects) {
       // node.
       const created = createFiberFromText(
         '' + newChild,
-        returnFiber.internalContextTag,
+        returnFiber.mode,
         expirationTime,
       );
       created.return = returnFiber;
@@ -433,7 +436,7 @@ function ChildReconciler(shouldTrackSideEffects) {
         case REACT_ELEMENT_TYPE: {
           const created = createFiberFromElement(
             newChild,
-            returnFiber.internalContextTag,
+            returnFiber.mode,
             expirationTime,
           );
           created.ref = coerceRef(null, newChild);
@@ -443,7 +446,7 @@ function ChildReconciler(shouldTrackSideEffects) {
         case REACT_PORTAL_TYPE: {
           const created = createFiberFromPortal(
             newChild,
-            returnFiber.internalContextTag,
+            returnFiber.mode,
             expirationTime,
           );
           created.return = returnFiber;
@@ -454,7 +457,7 @@ function ChildReconciler(shouldTrackSideEffects) {
       if (isArray(newChild) || getIteratorFn(newChild)) {
         const created = createFiberFromFragment(
           newChild,
-          returnFiber.internalContextTag,
+          returnFiber.mode,
           expirationTime,
           null,
         );
@@ -1042,7 +1045,7 @@ function ChildReconciler(shouldTrackSideEffects) {
     deleteRemainingChildren(returnFiber, currentFirstChild);
     const created = createFiberFromText(
       textContent,
-      returnFiber.internalContextTag,
+      returnFiber.mode,
       expirationTime,
     );
     created.return = returnFiber;
@@ -1094,7 +1097,7 @@ function ChildReconciler(shouldTrackSideEffects) {
     if (element.type === REACT_FRAGMENT_TYPE) {
       const created = createFiberFromFragment(
         element.props.children,
-        returnFiber.internalContextTag,
+        returnFiber.mode,
         expirationTime,
         element.key,
       );
@@ -1103,7 +1106,7 @@ function ChildReconciler(shouldTrackSideEffects) {
     } else {
       const created = createFiberFromElement(
         element,
-        returnFiber.internalContextTag,
+        returnFiber.mode,
         expirationTime,
       );
       created.ref = coerceRef(currentFirstChild, element);
@@ -1149,7 +1152,7 @@ function ChildReconciler(shouldTrackSideEffects) {
 
     const created = createFiberFromPortal(
       portal,
-      returnFiber.internalContextTag,
+      returnFiber.mode,
       expirationTime,
     );
     created.return = returnFiber;
